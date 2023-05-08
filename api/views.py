@@ -200,7 +200,7 @@ class IsPreExamTakenView(APIView):
         try:
             user = CustomUser.objects.get(email=user_email)
             try:
-                user_history = UserHistory.objects.get(user=user)
+                user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
                 is_pre_exam_taken = user_history.is_pre_exam_taken
                 return Response(is_pre_exam_taken, status=status.HTTP_200_OK)
             except UserHistory.DoesNotExist:
@@ -225,10 +225,11 @@ class UpdatePreExamTakenView(APIView):
 
         try:
             user = CustomUser.objects.get(email=user_email)
-
             try:
-
-                user_history, created = UserHistory.objects.get_or_create(user=user)
+                user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
+                if user_history is None:
+                    # If there are no UserHistory objects for this user, create one
+                    user_history = UserHistory.objects.create(user=user)
                 user_history.is_pre_exam_taken = is_pre_exam_taken
                 user_history.save()
                 return JsonResponse({'success': 'User history updated.'}, status=200)
@@ -245,7 +246,7 @@ class IsPostExamTakenView(APIView):
         try:
             user = CustomUser.objects.get(email=user_email)
             try:
-                user_history = UserHistory.objects.get(user=user)
+                user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
                 is_post_exam_taken = user_history.is_post_exam_taken
                 return Response(is_post_exam_taken, status=status.HTTP_200_OK)
             except UserHistory.DoesNotExist:
@@ -267,7 +268,10 @@ class UpdatePostExamTakenView(APIView):
         try:
             user = CustomUser.objects.get(email=user_email)
             try:
-                user_history, created = UserHistory.objects.get_or_create(user=user)
+                user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
+                if user_history is None:
+                    # If there are no UserHistory objects for this user, create one
+                    user_history = UserHistory.objects.create(user=user)
                 user_history.is_post_exam_taken = is_post_exam_taken
                 user_history.save()
                 return JsonResponse({'success': 'User history updated.'}, status=200)
@@ -283,7 +287,7 @@ class IsChatBotUsedView(APIView):
         try:
             user = CustomUser.objects.get(email=user_email)
             try:
-                user_history = UserHistory.objects.get(user=user)
+                user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
                 is_chat_bot_used = user_history.is_chat_bot_used
                 return Response(is_chat_bot_used, status=status.HTTP_200_OK)
             except UserHistory.DoesNotExist:
@@ -305,7 +309,10 @@ class UpdateChatBotUsedView(APIView):
         try:
             user = CustomUser.objects.get(email=user_email)
             try:
-                user_history, created = UserHistory.objects.get_or_create(user=user)
+                user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
+                if user_history is None:
+                    # If there are no UserHistory objects for this user, create one
+                    user_history = UserHistory.objects.create(user=user)
                 user_history.is_chat_bot_used = is_chat_bot_used
                 user_history.save()
                 return JsonResponse({'success': 'User history updated.'}, status=200)
