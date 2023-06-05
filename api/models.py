@@ -75,7 +75,9 @@ class PostExam(models.Model):
 class UserHistory(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     is_pre_exam_taken = models.BooleanField(default=False,  null=True, blank=True)
+    pre_exam_taken_spent_time = models.CharField(default='0', null=True, blank=True, max_length=1)
     is_post_exam_taken = models.BooleanField(default=False,  null=True, blank=True)
+    post_exam_taken_spent_time = models.CharField(default='0', null=True, blank=True, max_length=1)
     is_chat_bot_used = models.BooleanField(default=False,  null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

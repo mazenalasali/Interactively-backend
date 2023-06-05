@@ -1,5 +1,7 @@
 from django.contrib.auth import  login, logout
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -10,7 +12,7 @@ from rest_framework.views import APIView
 
 from .models import PreExam, PostExam, CustomUser, Question, UserHistory, Activity, Contact
 from .serializers import CustomUserSerializer, AuthTokenSerializer, QuestionSerializer, UserHistorySerializer, \
-    PreExamSerializer, PostExamSerializer, ActivitySerializer, ContactSerializer
+    PreExamSerializer, PostExamSerializer, ContactSerializer
 
 
 class RegisterView(APIView):
@@ -165,6 +167,8 @@ class PostExamList(APIView):
         serializer = PostExamSerializer(postexams, many=True)
         return Response(serializer.data)
 
+
+
 class ActivityCreateView(APIView):
     permission_classes = (AllowAny,)
     # permission_classes = (IsAuthenticated,)
@@ -173,11 +177,14 @@ class ActivityCreateView(APIView):
     def post(self, request):
         user_email = request.data['user_email']
         activity_name=request.data['activity_name']
-        file = request.data['activity_name']
+        file_uploaded = request.data['file']
+        print(file_uploaded)
+
+
         user = CustomUser.objects.get(email=user_email)
         activity = Activity(activity_name=activity_name,
                                 user=user,
-                                file=file)
+                                file=file_uploaded)
         try:
             activity.save()
             return Response({'message': 'activity submitted successfully'}, status=status.HTTP_200_OK)
@@ -185,24 +192,46 @@ class ActivityCreateView(APIView):
 
             return Response({'message': 'Error in submitting the activity'}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class ActivityList(APIView):
     permission_classes = (AllowAny,)
+
     def get(self, request, user_id):
         user = CustomUser.objects.get(id=user_id)
         activities = Activity.objects.filter(user=user)
-        serializer = ActivitySerializer(activities, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = []
+
+        for activity in activities:
+            file_url = None
+            if activity.file:
+                file_url = request.build_absolute_uri(activity.file.url)
+
+            activity_data = {
+                'id': activity.id,
+                'activity_name': activity.activity_name,
+                'file_url': file_url,
+            }
+
+            data.append(activity_data)
+
+        return JsonResponse(data, safe=False)
 
 class IsPreExamTakenView(APIView):
     permission_classes = (AllowAny,)
+
     def post(self, request):
         user_email = request.data['userEmail']
         try:
             user = CustomUser.objects.get(email=user_email)
             try:
                 user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
-                is_pre_exam_taken = user_history.is_pre_exam_taken
-                return Response(is_pre_exam_taken, status=status.HTTP_200_OK)
+                if user_history:
+                    is_pre_exam_taken = user_history.is_pre_exam_taken
+                    if is_pre_exam_taken is not None:
+                        return Response(is_pre_exam_taken, status=status.HTTP_200_OK)
+                    else:
+                        return Response(False, status=status.HTTP_200_OK)
+                return Response(False, status=status.HTTP_200_OK)
             except UserHistory.DoesNotExist:
                 return Response(False, status=status.HTTP_200_OK)
         except CustomUser.DoesNotExist:
@@ -238,28 +267,66 @@ class UpdatePreExamTakenView(APIView):
         except CustomUser.DoesNotExist:
             return JsonResponse({'error': 'User history not updated'}, status=404)
 
+class UpdatePreExamTakenView(APIView):
+    permission_classes = (AllowAny,)
+    def post(self, request):
+        user_email = request.data['userEmail']
+        is_pre_exam_taken = request.data['isPreExamTaken']
+        pre_exam_spent_time = request.data['preExamSpentTime']
+        is_pre_exam_taken = True if is_pre_exam_taken == 'true' or 'True' else False
+
+        if user_email is None:
+            return JsonResponse({'error': 'User email is required.'}, status=400)
+
+        if is_pre_exam_taken is None:
+            return JsonResponse({'error': 'is_pre_exam_taken value is required.'}, status=400)
+
+        try:
+            user = CustomUser.objects.get(email=user_email)
+            try:
+                user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
+                if user_history is None:
+                    # If there are no UserHistory objects for this user, create one
+                    user_history = UserHistory.objects.create(user=user)
+                user_history.is_pre_exam_taken = is_pre_exam_taken
+                user_history.pre_exam_taken_spent_time = pre_exam_spent_time
+                user_history.save()
+                return JsonResponse({'success': 'User history updated.'}, status=200)
+            except UserHistory.DoesNotExist:
+                return JsonResponse({'error': 'User history not updated.'}, status=404)
+        except CustomUser.DoesNotExist:
+            return JsonResponse({'error': 'User history not updated'}, status=404)
+
 
 class IsPostExamTakenView(APIView):
     permission_classes = (AllowAny,)
+
     def post(self, request):
         user_email = request.data['userEmail']
         try:
             user = CustomUser.objects.get(email=user_email)
             try:
                 user_history = UserHistory.objects.filter(user=user).order_by('-created_at').first()
-                is_post_exam_taken = user_history.is_post_exam_taken
-                return Response(is_post_exam_taken, status=status.HTTP_200_OK)
+                if user_history:
+                    is_post_exam_taken = user_history.is_post_exam_taken
+                    if is_post_exam_taken is not None:
+                        return Response(is_post_exam_taken, status=status.HTTP_200_OK)
+                    else:
+                        return Response(False, status=status.HTTP_200_OK)
+                return Response(False, status=status.HTTP_200_OK)
             except UserHistory.DoesNotExist:
                 return Response(False, status=status.HTTP_200_OK)
         except CustomUser.DoesNotExist:
             is_post_exam_taken = False
             return Response(is_post_exam_taken, status=status.HTTP_200_OK)
 
+
 class UpdatePostExamTakenView(APIView):
     permission_classes = (AllowAny,)
     def post(self, request):
         user_email = request.data['userEmail']
         is_post_exam_taken = request.data['isPostExamTaken']
+        post_exam_spent_time = request.data['postExamSpentTime']
         is_post_exam_taken = True if is_post_exam_taken == 'true' or 'True' else False
         if user_email is None:
             return JsonResponse({'error': 'User email is required.'}, status=400)
@@ -273,6 +340,7 @@ class UpdatePostExamTakenView(APIView):
                     # If there are no UserHistory objects for this user, create one
                     user_history = UserHistory.objects.create(user=user)
                 user_history.is_post_exam_taken = is_post_exam_taken
+                user_history.post_exam_taken_spent_time = post_exam_spent_time
                 user_history.save()
                 return JsonResponse({'success': 'User history updated.'}, status=200)
             except UserHistory.DoesNotExist:

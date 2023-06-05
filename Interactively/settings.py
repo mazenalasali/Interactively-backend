@@ -150,5 +150,6 @@ CORS_ALLOWED_ORIGINS = ['http://localhost:8000',
                         'https://interaction-maker.firebaseapp.com']
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
+DATA_UPLOAD_MAX_MEMORY_SIZE = 90 * 1024 * 1024  # 10MB
 
 

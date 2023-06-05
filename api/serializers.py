@@ -63,17 +63,15 @@ class PostExamSerializer(serializers.ModelSerializer):
         model = PostExam
         fields = ['id', 'user', 'question', 'answer']
 
-class ActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Activity
-        fields = ['id', 'user', 'activity_name', 'file']
+# class ActivitySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Activity
+#         fields = ['id', 'user', 'activity_name', 'file']
 
 class UserHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = UserHistory
         fields = '__all__'
 
-class ActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Activity
-        fields = '__all__'
+
+
